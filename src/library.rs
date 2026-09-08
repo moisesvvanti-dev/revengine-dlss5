@@ -300,7 +300,9 @@ pub fn parse_gaming_root(b: &[u8]) -> Option<String> {
         return None;
     }
     let units: Vec<u16> = b[8..]
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .take_while(|&u| u != 0)
         .collect();
@@ -699,12 +701,12 @@ mod icon {
             return None;
         }
         let mut rgba = bgra;
-        for px in rgba.chunks_exact_mut(4) {
+        for px in rgba.as_chunks_mut::<4>().0 {
             px.swap(0, 2);
         }
         // An icon without an alpha channel comes back fully transparent: treat as opaque.
-        if rgba.chunks_exact(4).all(|p| p[3] == 0) {
-            for px in rgba.chunks_exact_mut(4) {
+        if rgba.as_chunks::<4>().0.iter().all(|p| p[3] == 0) {
+            for px in rgba.as_chunks_mut::<4>().0 {
                 px[3] = 255;
             }
         }
