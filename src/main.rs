@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod diagnose;
+mod feed_cfg;
 mod game;
 mod gpu;
 mod gpupref;

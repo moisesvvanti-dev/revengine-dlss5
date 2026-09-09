@@ -1239,8 +1239,15 @@ fn step_config(_c: &Client, st: &GameStatus, _w: &Path, progress: Progress) -> R
         return Ok(vec![game::RESHADE_INI.into()]);
     }
     reshade_ini::write_preset(st.game_dir())?;
+    // Feeder path: write a tuned dlss5-feed.cfg on first install (the create_delay
+    // fix stops the fullscreen swapchain-rebuild crash from dropping frames).
+    // An existing cfg is never touched.
+    let mut out = vec![game::RESHADE_INI.into(), game::RESHADE_PRESET.into()];
+    if let Some(name) = crate::feed_cfg::write_if_missing(st.game_dir())? {
+        out.push(name.into());
+    }
     progress(100, "ReShade.ini + ReShadePreset.ini written");
-    Ok(vec![game::RESHADE_INI.into(), game::RESHADE_PRESET.into()])
+    Ok(out)
 }
 
 // ── step 7: which GPU Windows starts the process on ────────────
