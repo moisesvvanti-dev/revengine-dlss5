@@ -93,13 +93,15 @@ pub struct App {
     search: String,
     /// Official store marks (Simple Icons, CC0), white on transparent, tinted at paint time.
     store_icons: HashMap<Store, egui::TextureHandle>,
-    kofi_icon: Option<egui::TextureHandle>,
+    /// The logo mark, decoded once and reused across frames.
     logo_icon: Option<egui::TextureHandle>,
 }
 
-pub const KOFI_URL: &str = "https://ko-fi.com/kindiboy";
-/// Ko-fi's brand red.
-const KOFI_RED: Color32 = Color32::from_rgb(0xff, 0x5e, 0x5b);
+/// Donate button on the header: opens a PayPal donation to the author's
+/// email. A plain link — no account, key or admin anything required.
+pub const PAYPAL_URL: &str = "https://www.paypal.com/donate/?business=moisesvvanti@gmail.com&currency_code=BRL&no_recurring=0";
+/// PayPal's brand blue.
+const PAYPAL_BLUE: Color32 = Color32::from_rgb(0x00, 0x70, 0xba);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Page {
@@ -183,7 +185,6 @@ impl App {
             meta_rx: None,
             search: String::new(),
             store_icons: HashMap::new(),
-            kofi_icon: None,
             logo_icon: None,
             updating: None,
             pending_refresh: None,
@@ -1738,57 +1739,46 @@ impl eframe::App for App {
                     }
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         ui.spacing_mut().item_spacing.x = 10.0;
-                        // ── Ko-fi (rightmost) ────────────────────
-                        if self.kofi_icon.is_none() {
-                            self.kofi_icon =
-                                image::load_from_memory(include_bytes!("../assets/kofi.png"))
-                                    .ok()
-                                    .map(|i| {
-                                        let i = i.to_rgba8();
-                                        let (w, h) = i.dimensions();
-                                        ui.ctx().load_texture(
-                                            "kofi",
-                                            egui::ColorImage::from_rgba_unmultiplied(
-                                                [w as usize, h as usize],
-                                                i.as_raw(),
-                                            ),
-                                            egui::TextureOptions::LINEAR,
-                                        )
-                                    });
-                        }
-                        let label = "Buy me a Cup of Coffee";
+                        // ── Donate via PayPal (rightmost) ──────────────
+                        let label = "Donate";
                         let galley = ui.painter().layout_no_wrap(
                             label.to_owned(),
                             t::plex_semibold(12.5),
                             Color32::WHITE,
                         );
-                        let size = Vec2::new(galley.size().x + 46.0, 36.0);
+                        let size = Vec2::new(galley.size().x + 38.0, 36.0);
                         let (rect, resp) = ui.allocate_exact_size(size, egui::Sense::click());
                         let fill = if resp.hovered() {
-                            Color32::from_rgb(0xff, 0x74, 0x71)
+                            Color32::from_rgb(0x13, 0x8b, 0xd8)
                         } else {
-                            KOFI_RED
+                            PAYPAL_BLUE
                         };
                         ui.painter().rect_filled(rect, CornerRadius::same(10), fill);
-                        if let Some(tex) = &self.kofi_icon {
-                            let icon = egui::Rect::from_center_size(
-                                rect.left_center() + Vec2::new(20.0, 0.0),
-                                Vec2::splat(18.0),
-                            );
-                            egui::Image::from_texture(tex)
-                                .fit_to_exact_size(icon.size())
-                                .paint_at(ui, icon);
-                        }
+                        // A "$" mark in the button's left gutter.
+                        let dg = ui.painter().layout_no_wrap(
+                            "$".to_owned(),
+                            t::plex_semibold(15.0),
+                            Color32::WHITE,
+                        );
                         ui.painter().galley(
-                            egui::pos2(rect.left() + 36.0, rect.center().y - galley.size().y / 2.0),
+                            egui::pos2(
+                                rect.left() + 22.0 - dg.size().x,
+                                rect.center().y - dg.size().y / 2.0,
+                            ),
+                            dg,
+                            Color32::WHITE,
+                        );
+                        ui.painter().galley(
+                            egui::pos2(rect.left() + 34.0, rect.center().y - galley.size().y / 2.0),
                             galley,
                             Color32::WHITE,
                         );
                         if resp
                             .on_hover_cursor(egui::CursorIcon::PointingHand)
+                            .on_hover_text("Support the author via PayPal")
                             .clicked()
                         {
-                            ui.ctx().open_url(egui::OpenUrl::new_tab(KOFI_URL));
+                            ui.ctx().open_url(egui::OpenUrl::new_tab(PAYPAL_URL));
                         }
                         chip(
                             ui,
